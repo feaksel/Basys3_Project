@@ -1,7 +1,3 @@
-//==============================================================================
-// Enhanced Memory Controller with Proper BRAM Inference (0x80000000 mapping)
-//==============================================================================
-
 module bram_memory_controller (
     input wire clk,
     input wire reset,
@@ -34,50 +30,70 @@ module bram_memory_controller (
     // Dual-port Block RAM for simultaneous I/D access
     (* ram_style = "block" *) reg [31:0] memory [0:MEM_SIZE_WORDS-1];
     
-    // Address calculation with 0x80000000 mapping
-    wire [MEM_ADDR_BITS-1:0] ibus_addr =
-        (iBus_cmd_payload_pc >= 32'h80000000) ?
-            (iBus_cmd_payload_pc - 32'h80000000) >> 2 :
-            iBus_cmd_payload_pc[MEM_ADDR_BITS+1:2];
-
-    wire [MEM_ADDR_BITS-1:0] dbus_addr =
-        (dBus_cmd_payload_address >= 32'h80000000) ?
-            (dBus_cmd_payload_address - 32'h80000000) >> 2 :
-            dBus_cmd_payload_address[MEM_ADDR_BITS+1:2];
+    // Address calculation with 0x80000000 mapping - FIXED!
+    wire [31:0] ibus_physical_addr = iBus_cmd_payload_pc - 32'h80000000;
+    wire [31:0] dbus_physical_addr = dBus_cmd_payload_address - 32'h80000000;
     
-    // Memory bounds checking with 0x80000000 base
-    wire ibus_in_range =
-        (iBus_cmd_payload_pc >= 32'h80000000) &&
-        (iBus_cmd_payload_pc < 32'h80000000 + (MEM_SIZE_WORDS*4));
-
-    wire dbus_in_range =
-        (dBus_cmd_payload_address >= 32'h80000000) &&
-        (dBus_cmd_payload_address < 32'h80000000 + (MEM_SIZE_WORDS*4));
+    wire [MEM_ADDR_BITS-1:0] ibus_addr = ibus_physical_addr[MEM_ADDR_BITS+1:2];
+    wire [MEM_ADDR_BITS-1:0] dbus_addr = dbus_physical_addr[MEM_ADDR_BITS+1:2];
+        
+    // Memory bounds checking with 0x80000000 base - FIXED!
+    wire ibus_in_range = (ibus_physical_addr < (MEM_SIZE_WORDS * 4));
+    wire dbus_in_range = (dbus_physical_addr < (MEM_SIZE_WORDS * 4));
+        
+    // Pipeline registers for instruction fetch
+    reg [31:0] pending_inst_addr;
+    reg        pending_inst_valid;
+    reg        pending_inst_error;
     
     integer i;
-    // Initialize with enhanced test program
+    
+    // Initialize memory
     initial begin
+        // Clear memory first
+        for (i = 0; i < MEM_SIZE_WORDS; i = i + 1) begin
+            memory[i] = 32'h00000013; // NOP
+        end
+
         $readmemh("C:/VexRiscv-Project/software/build/blink.hex", memory);
+        $display("mem[0]=%08x mem[1]=%08x mem[2]=%08x", memory[0], memory[1], memory[2]);
     end
     
-    // Instruction fetch logic
+    // Instruction fetch logic - FIXED
     always @(posedge clk) begin
         if (reset) begin
             iBus_cmd_ready <= 1'b1;
             iBus_rsp_valid <= 1'b0;
             iBus_rsp_payload_error <= 1'b0;
             iBus_rsp_payload_inst <= 32'h00000013;
+            pending_inst_valid <= 1'b0;
         end else begin
+            // Always ready to accept commands
             iBus_cmd_ready <= 1'b1;
             
-            if (iBus_cmd_valid) begin
-                iBus_rsp_valid <= 1'b1;
+            // Handle new instruction fetch requests
+            if (iBus_cmd_valid && iBus_cmd_ready) begin
+                // Capture the request - response will come next cycle
+                pending_inst_valid <= 1'b1;
                 if (ibus_in_range) begin
-                    iBus_rsp_payload_inst <= memory[ibus_addr];
-                    iBus_rsp_payload_error <= 1'b0;
+                    pending_inst_addr <= ibus_addr;
+                    pending_inst_error <= 1'b0;
                 end else begin
-                    iBus_rsp_payload_inst <= 32'h00000013; // NOP for out-of-bounds
-                    iBus_rsp_payload_error <= 1'b1;
+                    pending_inst_addr <= 0;
+                    pending_inst_error <= 1'b1;
+                end
+            end else begin
+                pending_inst_valid <= 1'b0;
+            end
+            
+            // Provide response (one cycle latency)
+            if (pending_inst_valid) begin
+                iBus_rsp_valid <= 1'b1;
+                iBus_rsp_payload_error <= pending_inst_error;
+                if (pending_inst_error) begin
+                    iBus_rsp_payload_inst <= 32'h00000013; // NOP for error
+                end else begin
+                    iBus_rsp_payload_inst <= memory[pending_inst_addr];
                 end
             end else begin
                 iBus_rsp_valid <= 1'b0;

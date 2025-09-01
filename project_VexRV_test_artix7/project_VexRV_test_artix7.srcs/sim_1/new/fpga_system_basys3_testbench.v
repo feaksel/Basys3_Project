@@ -71,6 +71,14 @@ module fpga_system_basys3_testbench;
         end
     end
     
+    // Add this to monitor GPIO writes
+always @(posedge clk) begin
+    if (dut.system_core.gpio_cmd_valid && dut.system_core.gpio_cmd_ready && dut.system_core.gpio_cmd_wr) begin
+        $display("GPIO WRITE: 0x%08x -> LEDs now: 0x%04x", 
+                dut.system_core.gpio_cmd_data, leds);
+    end
+end
+    
     // Monitor UART accesses
     always @(posedge clk) begin
         if (!dut.reset_sync && dut.system_core.uart_cmd_valid && dut.system_core.uart_cmd_ready) begin
@@ -85,6 +93,16 @@ module fpga_system_basys3_testbench;
             end
         end
     end
+    
+    // Add this to monitor UART writes more closely
+always @(posedge clk) begin
+    if (dut.system_core.uart_cmd_valid && dut.system_core.uart_cmd_ready && dut.system_core.uart_cmd_wr) begin
+        $display("UART WRITE: data=0x%08x (char='%c') at time %0t", 
+                dut.system_core.uart_cmd_data, 
+                dut.system_core.uart_cmd_data[7:0],
+                $time);
+    end
+end
     
     // UART transmission monitor
     reg [7:0] uart_char;
