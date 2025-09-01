@@ -1,0 +1,38 @@
+# Build artifacts
+software/build/
+*.bit
+*.ltx
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+*.sim/
+*.xpr
+vivado*
+.Xil/
+*.log
+*.jou
+*.str
+
+# Windows/WSL files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+*.code-workspace
+
+# Temporary files
+*.tmp
+*.bak
+*.orig
+
+# But keep important VS Code configs
+!.vscode/tasks.json
+!.vscode/c_cpp_properties.json
+!.vscode/extensions.json
