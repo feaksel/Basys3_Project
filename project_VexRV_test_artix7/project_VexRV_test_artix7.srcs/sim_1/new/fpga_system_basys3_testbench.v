@@ -120,66 +120,38 @@ end
         end
     end
     
-    // Test sequence
-    initial begin
-        $display("=== FPGA System Basys3 Integration Test ===");
-        $display("Testing: Enhanced memory + GPIO + UART + Reset sync");
-        
-        // Reset sequence
-        #200;
-        reset_btn = 0;
-        $display("Time %0t: System reset released", $time);
-        
-        // Change switches during test to verify GPIO read
-        #50000;
-        switches = 16'hABCD;
-        $display("Time %0t: Switches changed to 0x%04x", $time, switches);
-        
-        #50000;
-        switches = 16'h5555;
-        $display("Time %0t: Switches changed to 0x%04x", $time, switches);
-        
-        #50000;
-        switches = 16'hFFFF;
-        $display("Time %0t: Switches changed to 0x%04x", $time, switches);
-        
-        // Run comprehensive test
-        #200000;
-        
-        // Performance analysis
-        $display("\n=== PERFORMANCE ANALYSIS ===");
-        $display("Total clock cycles: %0d", clock_cycles);
-        $display("Instructions executed: %0d", instruction_count);
-        $display("Memory writes: %0d", memory_write_count);
-        $display("GPIO accesses: %0d", gpio_write_count);
-        $display("UART accesses: %0d", uart_write_count);
-        $display("IPC (Instructions per cycle): %0d", instruction_count/clock_cycles);
-        $display("Final LED state: 0x%04x", leds);
-        
-        // Memory dump
-        $display("\n=== MEMORY VERIFICATION ===");
-        $display("memory[0] = 0x%08x", dut.system_core.memory_controller.memory[0]);
-        $display("memory[1] = 0x%08x", dut.system_core.memory_controller.memory[1]);
-        $display("memory[2] = 0x%08x", dut.system_core.memory_controller.memory[2]);
-        $display("memory[3] = 0x%08x", dut.system_core.memory_controller.memory[3]);
-        
-        // System validation
-        if (instruction_count > 100 && gpio_write_count > 0 && uart_write_count > 0) begin
-            $display("\n*** COMPLETE FPGA SYSTEM SUCCESS ***");
-            $display("✓ CPU executing enhanced program");
-            $display("✓ Block RAM memory working");
-            $display("✓ GPIO controller tested (LEDs controlled)");
-            $display("✓ UART controller tested (characters sent)");
-            $display("✓ Reset synchronization working");
-            $display("\n*** READY FOR FPGA IMPLEMENTATION ***");
-        end else begin
-            $display("\n*** SYSTEM INTEGRATION ISSUES ***");
-            if (instruction_count <= 100) $display("✗ Low instruction count");
-            if (gpio_write_count == 0) $display("✗ GPIO not accessed");
-            if (uart_write_count == 0) $display("✗ UART not accessed");
+          // Test sequence
+        initial begin
+            $display("=== VexRiscv Finite Program Test ===");
+            
+            // Reset sequence
+            #200;
+            reset_btn = 0;
+            $display("Time %0t: System reset released", $time);
+            
+            // Run test - enough time for complete program
+            #4000;  // Longer runtime for finite program
+            
+            // Performance analysis
+            $display("\n=== FINAL RESULTS ===");
+            $display("Instructions executed: %0d", instruction_count);
+            $display("GPIO writes: %0d", gpio_write_count);
+            $display("UART writes: %0d", uart_write_count);
+            $display("Final LED state: 0x%04x", leds);
+            
+            // Success criteria
+            if (instruction_count > 200 && gpio_write_count >= 6 && uart_write_count >= 9) begin
+                $display("\n*** VEXRISCV SYSTEM COMPLETE SUCCESS ***");
+                $display("✓ Finite program executed fully");
+                $display("✓ All peripherals tested");
+                $display("*** READY FOR FPGA DEPLOYMENT ***");
+            end else begin
+                $display("\n*** INCOMPLETE EXECUTION ***");
+                $display("Expected: GPIO >= 6, UART >= 9");
+                $display("Got: GPIO = %0d, UART = %0d", gpio_write_count, uart_write_count);
+            end
+            
+            $finish;
         end
-        
-        $finish;
-    end
 
 endmodule
