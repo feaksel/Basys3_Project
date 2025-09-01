@@ -1,7 +1,7 @@
 CC = riscv64-linux-gnu-gcc
 OBJCOPY = riscv64-linux-gnu-objcopy
-CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -static -Iinclude -T linker.ld
-
+CFLAGS = -march=rv32i -mabi=ilp32 -nostdlib -nostartfiles -static -Iinclude -T linker.ld -fno-builtin -fno-PIC -fno-pie -mno-relax
+LDFLAGS = -nostdlib -static -Wl,--no-relax
 build/blink:
 	mkdir -p build
 	$(CC) $(CFLAGS) -o build/blink.elf src/start.s src/system.c src/programs/blink.c
