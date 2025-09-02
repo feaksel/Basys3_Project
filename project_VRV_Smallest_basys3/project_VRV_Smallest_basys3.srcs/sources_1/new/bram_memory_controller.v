@@ -55,8 +55,11 @@ module bram_memory_controller (
             memory[i] = 32'h00000013; // NOP
         end
 
-        $readmemh("C:/VexRiscv-Project/software/build/blink.hex", memory);
+        $readmemh("blink.mem", memory);
         $display("mem[0]=%08x mem[1]=%08x mem[2]=%08x", memory[0], memory[1], memory[2]);
+    
+    
+    
     end
     
     // Instruction fetch logic - FIXED

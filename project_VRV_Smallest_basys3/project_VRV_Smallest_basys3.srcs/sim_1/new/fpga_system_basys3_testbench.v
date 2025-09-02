@@ -1,4 +1,4 @@
-// Updated Testbench for fpga_system_basys3
+// Updated Testbench for fpga_system_basys3 real
 module fpga_system_basys3_testbench;
 
     // Testbench signals
